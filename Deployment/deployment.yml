@@ -4,11 +4,17 @@ metadata:
   name: nginx-deployment
   namespace: default
 spec: 
-  replicas: 2
+  replicas: 3
   selector: 
     matchLabels:  #标签选择器指定
       app: nginx
       release: canary
+  strategy: 
+    type: "RollingUpdate"  #更新类型：滚动更新
+    rollingUpdate:
+      maxSurge: 2 #和期望ready的副本数比，超过期望副本数最大比例（或最大值），这个值调的越大，副本更新速度越快。
+      maxUnavailable: 0 #和期望ready的副本数比，不可用副本数最大比例（或最大值），这个值越小，越能保证服务稳定，更新越平滑；
+  revisionHistoryLimit: 10 #最多保存历史版本数，用于回滚
   template:
     metadata:
       name: nginx-pod
@@ -23,4 +29,3 @@ spec:
         ports:
         - name: http
           containerPort: 8080
-

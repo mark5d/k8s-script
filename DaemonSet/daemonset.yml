@@ -1,0 +1,31 @@
+apiVersion: "apps/v1"
+kind: DaemonSet
+metadata: 
+  name: nginx-daemonset
+  namespace: default
+spec: 
+  selector: 
+    matchLabels:  #标签选择器指定
+      app: nginx
+      release: canary
+  strategy: 
+    type: "RollingUpdate"  #更新类型：滚动更新
+    updateStrategy:
+      maxUnavailable: 1 #和期望ready的副本数比，不可用副本数最大比例（或最大值），这个值越小，越能保证服务稳定，更新越平滑；
+  revisionHistoryLimit: 10 #最多保存历史版本数，用于回滚
+  template:
+    metadata:
+      name: nginx-pod
+      labels: 
+        app: nginx
+        release: canary
+        environment: qa
+    spec:
+      hostNetwork: true
+      containers:
+      - name: nginx-container
+        image: nginx:latest
+        ports:
+        - name: http
+          containerPort: 80
+          hostPort: 8080
