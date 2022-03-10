@@ -3,7 +3,7 @@ kind: Pod
 metadata:
   name: myapp
   namespace: default
-  annotaions:     #标签，不供选择器使用
+  annotaions:     #不供选择器使用,仅用于为对象提供“元数据”
   labels:
     name: myapp
 spec:
@@ -19,6 +19,8 @@ spec:
     ports:
       - name: http
         containerPort: 80   #容器端口
+    lifecycle: 
+      postStart: #探针执行前执行
     livenessProbe:   #存活探针
       httpGet:   #exec grpc httpGet tcpSocket
         port: http

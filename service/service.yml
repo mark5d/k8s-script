@@ -1,0 +1,8 @@
+apiVersion: ""
+kind: service
+metadata: 
+  name: tomcat-service
+  label:
+    app: tomcat
+spec: 
+  
