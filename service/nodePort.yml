@@ -7,6 +7,7 @@ spec:
   type: NodePort  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
   selector: 
     app: tomcat
+  sessionAffinity: "ClientIP" #ClientIP客户端每次访问固定pod ,默认为None
   ports: 
   - name: http
     port: 80 #集群内访问端口

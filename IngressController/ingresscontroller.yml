@@ -1,0 +1,43 @@
+---
+apiVersion: ""
+kind: IngressController
+metadata: 
+  name: nginx-controller
+spec:
+
+---
+apiVersion: ""
+kind: Ingress
+metadata:
+ name: nginx-ingress
+spec:
+
+
+---
+apiVersion: "v1"
+kind: Service
+metadata:
+  name: tomcat-service
+spec: 
+
+---
+apiVersion: "apps/v1"
+kind: Deployment
+metadata: 
+  name: tomcat-deployment
+spec: 
+  selector:
+    matchLabels:
+    - app: tomcat
+  strategy: 
+    type: "RollingUpdate"  #更新类型：滚动更新
+    rollingUpdate:
+      maxSurge: 2 #和期望ready的副本数比，超过期望副本数最大比例（或最大值），这个值调的越大，副本更新速度越快。
+      maxUnavailable: 0 #和期望ready的副本数比，不可用副本数最大比例（或最大值），这个值越小，越能保证服务稳定，更新越平滑；
+  revisionHistoryLimit: 10 #最多保存历史版本数，用于回滚
+  templete: 
+    matadata: 
+      name: tomcat-pod
+      labels:
+        app: tomcat
+  
