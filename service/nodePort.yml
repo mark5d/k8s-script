@@ -1,0 +1,15 @@
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: tomcat-service
+  namespace: default
+spec: 
+  type: NodePort  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
+  selector: 
+    app: tomcat
+  ports: 
+  - name: http
+    port: 80 #集群内访问端口
+    tartgetPort: 80 #pod端口
+    nodePort: 80  #集群外访问地址
+    protocol: "TCP" #协议 TCP,UDP

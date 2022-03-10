@@ -1,0 +1,8 @@
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: tomcat-service
+  label:
+    app: tomcat
+spec: 
+  type: ExternalName  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
