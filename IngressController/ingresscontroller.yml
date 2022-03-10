@@ -6,11 +6,22 @@ metadata:
 spec:
 
 ---
-apiVersion: ""
+apiVersion: "networking.k8s.io/v1"
 kind: Ingress
 metadata:
  name: nginx-ingress
 spec:
+  backend: 
+   serviceName:
+   servicePort: 
+  
+
+
+---
+apiVersion: ""
+kind: Service
+metadata:
+  name: nodeport-service
 
 
 ---
