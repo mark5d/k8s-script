@@ -7,6 +7,7 @@ metadata:
   labels:
     name: myapp
 spec:
+  nodeSelector: #节点选择器
   containers:
   - name: myapp
     image: <Image>
@@ -27,8 +28,9 @@ spec:
         failureThreshold: 3 #失败次数
         successThreshold: 1 #成功次数 
         timeoutSeconds: 1 #超时时间
-    command:
-    args:
+    command:  #只命名command 容器中ENTRYPOINT与CMD失效
+    args:  #只命名args 容器中CMD失效
+    env: #环境变量
     readinessProbe:   #就绪探针
       httpGet: 
         port: http

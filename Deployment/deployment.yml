@@ -9,6 +9,7 @@ spec:
     matchLabels:  #标签选择器指定
       app: nginx
       release: canary
+    matchExpressions: #{key:"key",operator:"OPERATOR",values:[VAL1,VAL2]} operator:In,NotIn,Exists存在，NotExists不存在，前两个values必须为非空列表，后两个values必须为空列表
   strategy: 
     type: "RollingUpdate"  #更新类型：滚动更新
     rollingUpdate:
@@ -28,4 +29,4 @@ spec:
         image: nginx:latest
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 80
