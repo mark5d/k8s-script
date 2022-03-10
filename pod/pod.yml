@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: myapp
+  namespace: default
+  annotaions:     #标签，不供选择器使用
   labels:
     name: myapp
 spec:
@@ -14,8 +16,29 @@ spec:
         memory: "128Mi"
         cpu: "500m"
     ports:
-      - name: nginx
+      - name: http
         containerPort: 80   #容器端口
-        hostPort: 8080  #node端口
+    livenessProbe:   #存活探针
+      httpGet:   #exec grpc httpGet tcpSocket
+        port: http
+        path: /index.html
+        initialDelaySeconds: 1  #N秒之后探测
+        periodSeconds: 3   #探测时间间隔
+        failureThreshold: 3 #失败次数
+        successThreshold: 1 #成功次数 
+        timeoutSeconds: 1 #超时时间
+    command:
+    args:
+    readinessProbe:   #就绪探针
+      httpGet: 
+        port: http
+        path: /index.html
+        initialDelaySeconds: 1  #N秒之后探测
+        periodSeconds: 3   #探测时间间隔
+        failureThreshold: 3 #失败次数
+        successThreshold: 1 #成功次数 
+        timeoutSeconds: 1 #超时时间
+    restartPolicy: onFailure  #Always,onFailure,Never
+
       
 
