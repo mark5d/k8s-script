@@ -358,7 +358,7 @@ metadata:
     app.kubernetes.io/version: 1.1.2
     helm.sh/chart: ingress-nginx-4.0.18
   name: ingress-nginx-controller
-  namespace: ingress-nginx
+  namespace: in0x
 spec:
   ipFamilies:
   - IPv4
