@@ -22,6 +22,16 @@ apiVersion: ""
 kind: Service
 metadata:
   name: nodeport-service
+spec: 
+  type: NodePort
+  ports: 
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: 8080
+    protocol: TCP
+  selector: 
+    
 
 
 ---
