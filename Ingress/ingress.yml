@@ -22,6 +22,7 @@ apiVersion: ""
 kind: Service
 metadata:
   name: nodeport-service
+  namespace: ingress-nginx
 spec: 
   type: NodePort
   ports: 
@@ -31,6 +32,7 @@ spec:
     nodePort: 8080
     protocol: TCP
   selector: 
+    
     
 
 
