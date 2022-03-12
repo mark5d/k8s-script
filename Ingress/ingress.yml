@@ -43,7 +43,7 @@ metadata:
   name: tomcat-service
 spec: 
   type: ClusterIP  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
-  clusterIp: None #集群内访问地址,可以不指定，可以为Nobe或""时，为hardless服务，无头service,无头service直接走ingress代理，不走service redis.defaut.svc.cluster.local.
+  clusterIP: None #集群内访问地址,可以不指定，可以为Nobe或""时，为hardless服务，无头service,无头service直接走ingress代理，不走service redis.defaut.svc.cluster.local.
   selector: 
     app: tomcat
   ports:
