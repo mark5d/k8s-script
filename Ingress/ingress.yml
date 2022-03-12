@@ -47,7 +47,7 @@ spec:
   selector: 
     app: tomcat
   ports:
-  - name: tomcat-service-port
+  - name: http
     targetPort: 8080
     port: 8080
 
@@ -62,15 +62,15 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-    - app: tomcat
+      app: tomcat
   strategy: 
     type: "RollingUpdate"  #更新类型：滚动更新
     rollingUpdate:
       maxSurge: 1 #和期望ready的副本数比，超过期望副本数最大比例（或最大值），这个值调的越大，副本更新速度越快。
       maxUnavailable: 0 #和期望ready的副本数比，不可用副本数最大比例（或最大值），这个值越小，越能保证服务稳定，更新越平滑；
   revisionHistoryLimit: 10 #最多保存历史版本数，用于回滚
-  templete: 
-    matadata: 
+  template: 
+    metadata: 
       name: tomcat-pod
       labels:
         app: tomcat
@@ -79,6 +79,6 @@ spec:
       - name: tomcat-container
         image: tomcat:8.5-jre10-slim
         ports:
-        - name: tomcat-container-port
+        - name: http
           containerPort: 8080
 ---
