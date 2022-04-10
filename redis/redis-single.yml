@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: StatefulSet                               
+metadata:
+  name: redis
+spec:
+  replicas: 1                                               
+  selector:
+    matchLabels:                                         
+      app: redis 
+  serviceName: redis      
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      nodeName: k8s.node1  
+      containers:                                          #Pod里容器的定义部分
+      - name: redis                                     #容器的名称
+        image: redis:6.2.6                              #容器对应的docker镜像
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379                         #容器暴露的端口号
+        args: ["--requirepass","it9s2cu"]
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1024Mi
+          requests:
+            cpu: 500m
+            memory: 1024Mi
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 300
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:                                #容器内挂载点的定义部分
+        - name: redis-data
+          mountPath: /var/lib/redis              #容器内redis的数据目录
+        - name: redis-config
+          mountPath: /usr/local/etc/redis                   
+      volumes:
+        - name: redis-config
+          hostPath:
+            path: /root/k8s-yml/redis/single/conf
+            type: DirectoryOrCreate 
+        - name: redis-data
+          hostPath:
+            path: /root/k8s-yml/redis/single/data 
+            type: DirectoryOrCreate
+---
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: redis-service
+  namespace: default
+spec: 
+  type: NodePort  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
+  selector: 
+    app: redis
+  # sessionAffinity: "ClientIP" #ClientIP客户端每次访问固定pod ,默认为None
+  ports: 
+  - name: http
+    port: 6379 #集群内访问端口
+    nodePort: 30002  #集群外访问地址
+    protocol: "TCP" #协议 TCP,UDP

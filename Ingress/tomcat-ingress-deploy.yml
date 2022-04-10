@@ -1,12 +1,13 @@
 apiVersion: "networking.k8s.io/v1"
 kind: Ingress
 metadata:
-  name: nginx-ingress
+  name: tomcat-ingress
   annotations:
+    kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: nginx.example.com
+  - host: tomcat.example.com
     http:
       paths:
       - path: /
@@ -59,7 +60,7 @@ kind: Deployment
 metadata: 
   name: tomcat-deployment
 spec: 
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: tomcat
@@ -75,6 +76,7 @@ spec:
       labels:
         app: tomcat
     spec: 
+      nodeName: k8s.node2
       containers: 
       - name: tomcat-container
         image: tomcat:8.5-jre10-slim

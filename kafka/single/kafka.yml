@@ -1,0 +1,219 @@
+
+---
+#部署 Service Headless，用于Kafka间相互通信
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  labels:
+    app: kafka
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: kafka
+    port: 9092
+    targetPort: 9092
+  selector:
+    app: kafka
+---
+#部署 Service，用于外部访问 Kafka
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  labels:
+    app: kafka
+spec:
+  type: NodePort
+  ports:
+  - name: kafka
+    port: 30108
+    targetPort: 30108
+    nodePort: 30108
+  selector:
+    app: kafka
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: "kafka"
+  labels:
+    app: kafka
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+  serviceName: kafka-headless
+  podManagementPolicy: "Parallel"
+  replicas: 1
+  updateStrategy:
+    type: "RollingUpdate"
+  template:
+    metadata:
+      name: "kafka"
+      labels:
+        app: kafka
+    spec:    
+      nodeName: k8s.node1    
+      securityContext:
+        fsGroup: 1001
+        runAsUser: 1001
+      containers:
+      - name: kafka
+        image: "docker.io/bitnami/kafka:2.3.0-debian-9-r4"
+        imagePullPolicy: "IfNotPresent"
+        env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+          value: "zookeeper"                 
+        - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
+          value: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+        - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+          value: "INTERNAL"
+        - name: KAFKA_CFG_LISTENERS
+          value: "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:30108"
+        - name: KAFKA_CFG_ADVERTISED_LISTENERS
+          value: "INTERNAL://kafka-0:9092,EXTERNAL://kafka:30108"
+        - name: KAFKA_CFG_DEFAULT_REPLICATION_FACTOR
+          value: "1"
+        - name: ALLOW_PLAINTEXT_LISTENER
+          value: "yes"
+        - name: KAFKA_HEAP_OPTS
+          value: "-Xmx512m -Xms512m"
+        - name: KAFKA_CFG_LOGS_DIRS
+          value: /opt/bitnami/kafka/data
+        - name: JMX_PORT
+          value: "9988"
+        ports:
+        - name: kafka
+          containerPort: 9092
+        - name: out
+          containerPort: 30108
+        livenessProbe:
+          tcpSocket:
+            port: kafka
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 2
+        readinessProbe:
+          tcpSocket:
+            port: kafka
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        volumeMounts:
+        - name: kafka-data
+          mountPath: /bitnami/kafka
+      volumes:                                             #本地需要挂载到容器里的数据卷定义部分
+      - name: kafka-data
+        hostPath:
+          path: /root/k8s-yml/kafka/single/kafka/data                   
+          type: DirectoryOrCreate
+ 
+ 
+---
+
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet                               
+# metadata:
+#   name: kafka
+# spec:
+#   replicas: 1                                               
+#   selector:
+#     matchLabels:                                         
+#       app: kafka 
+#   serviceName: kafka      
+#   template:
+#     metadata:
+#       labels:
+#         app: kafka
+#     spec:
+#       nodeName: k8s.node1  
+#       containers:                                          
+#       - name: kafka                                     
+#         image: docker.io/bitnami/kafka:3.1                            
+#         imagePullPolicy: IfNotPresent
+#         # securityContext:
+#         #   allowPrivilegeEscalation: true
+#         #   privileged: true
+#         #   runAsUser: 1000          
+#         resources:
+#           limits:
+#             cpu: 1000m
+#             memory: 2048Mi
+#           requests:
+#             cpu: 1000m
+#             memory: 2048Mi
+#         ports:
+#         - containerPort: 9002
+#           name: client
+#         env:                                                   
+#         - name: KAFKA_CFG_ZOOKEEPER_CONNECT
+#           value: "zookeeper:2181"
+#         - name: KAFKA_ADVERTISED_LISTENERS
+#           value: "PLAINTEXT://:9092"
+#         - name: ALLOW_PLAINTEXT_LISTENER
+#           value: "yes"
+#         readinessProbe:
+#           tcpSocket:
+#             port: 9092
+#           initialDelaySeconds: 10
+#           timeoutSeconds: 5
+#         livenessProbe:
+#           tcpSocket:
+#             port: 9092
+#           initialDelaySeconds: 10
+#           timeoutSeconds: 5
+#         volumeMounts:                                #容器内挂载点的定义部分
+#         - name: kafka-data
+#           mountPath: /bitnami      
+#       volumes:                                             #本地需要挂载到容器里的数据卷定义部分
+#       - name: kafka-data
+#         hostPath:
+#           path: /root/k8s-yml/kafka/single/kafka/data                   
+#           type: DirectoryOrCreate
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: kafka
+#   labels:
+#     app: kafka
+# spec:
+#   selector:
+#     app: kafka
+#   type: ClusterIP
+#   clusterIP: None
+#   ports:
+#   - name: client
+#     port: 9002
+#     targetPort: 9002
+# ---
+# apiVersion: "v1"
+# kind: Service
+# metadata: 
+#   name: kafka-service
+#   namespace: default
+# spec: 
+#   type: NodePort  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
+#   selector: 
+#     app: kafka
+#   # sessionAffinity: "ClientIP" #ClientIP客户端每次访问固定pod ,默认为None
+#   ports: 
+#   - name: http
+#     port: 9002 #集群内访问端口
+#     nodePort: 30003  #集群外访问地址
+#     protocol: "TCP" #协议 TCP,UDP

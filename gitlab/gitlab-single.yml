@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment                               
+metadata:
+  name: gitlab
+spec:
+  replicas: 1                                               
+  selector:
+    matchLabels:                                         
+      app: gitlab  
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      nodeName: k8s.node1  
+      hostname: gitlabex
+      containers:                                          
+      - name: gitlab                                     
+        image: gitlab/gitlab-ce:14.6.0-ce.0                           
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8929     
+          name: gitlab-http
+        - containerPort: 2224
+          name: gitlab-https    
+        env:
+          - name: GITLAB_OMNIBUS_CONFIG
+            value: |
+              external_url 'http://gitlabex:30004'
+              gitlab_rails['gitlab_shell_ssh_port'] = 2224                
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4096Mi
+          requests:
+            cpu: 2000m
+            memory: 4096Mi
+        volumeMounts:                                
+        - name: gitlab-data
+          mountPath: /var/opt/gitlab             
+        - name: gitlab-config
+          mountPath: /etc/gitlab         
+        - name: gitlab-logs
+          mountPath: /var/log/gitlab       
+      volumes:
+        - name: gitlab-config
+          hostPath:
+            path: /root/k8s-yml/gitlab/single/conf
+            type: DirectoryOrCreate 
+        - name: gitlab-data
+          hostPath:
+            path: /root/k8s-yml/gitlab/single/data 
+            type: DirectoryOrCreate
+        - name: gitlab-logs
+          hostPath:
+            path: /root/k8s-yml/gitlab/single/data 
+            type: DirectoryOrCreate
+---
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: gitlab-service
+  namespace: default
+spec: 
+  type: NodePort  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
+  selector: 
+    app: gitlab
+  # sessionAffinity: "ClientIP" #ClientIP客户端每次访问固定pod ,默认为None
+  ports: 
+  - name: http
+    port: 8929 #集群内访问端口
+    nodePort: 30004  #集群外访问地址
+    protocol: "TCP" #协议 TCP,UDP

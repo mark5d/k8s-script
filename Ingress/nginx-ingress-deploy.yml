@@ -1,0 +1,86 @@
+apiVersion: "networking.k8s.io/v1"
+kind: Ingress
+metadata:
+  name: nginx-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: nginx.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-service
+            port:
+              number: 80
+  
+---
+# apiVersion: ""
+# kind: Service
+# metadata:
+#   name: nodeport-service
+#   namespace: ingress-nginx
+# spec: 
+#   type: NodePort
+#   ports: 
+#   - name: http
+#     port: 8080
+#     targetPort: 8080
+#     nodePort: 8080
+#     protocol: TCP
+#   selector: 
+    
+    
+
+
+# ---
+apiVersion: "v1"
+kind: Service
+metadata:
+  name: nginx-service
+spec: 
+  type: ClusterIP  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
+  clusterIP: None #集群内访问地址,可以不指定，可以为Nobe或""时，为hardless服务，无头service,无头service直接走ingress代理，不走service redis.defaut.svc.cluster.local.
+  selector: 
+    app: nginx
+  ports:
+  - name: http
+    targetPort: 80
+    port: 80
+
+
+
+---
+apiVersion: "apps/v1"
+kind: Deployment
+metadata: 
+  name: nginx-deployment
+spec: 
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  strategy: 
+    type: "RollingUpdate"  #更新类型：滚动更新
+    rollingUpdate:
+      maxSurge: 1 #和期望ready的副本数比，超过期望副本数最大比例（或最大值），这个值调的越大，副本更新速度越快。
+      maxUnavailable: 0 #和期望ready的副本数比，不可用副本数最大比例（或最大值），这个值越小，越能保证服务稳定，更新越平滑；
+  revisionHistoryLimit: 10 #最多保存历史版本数，用于回滚
+  template: 
+    metadata: 
+      name: nginx-pod
+      labels:
+        app: nginx
+    spec: 
+      nodeName: k8s.node2
+      containers: 
+      - name: nginx-container
+        image: nginx:latest
+        ports:
+        - name: http
+          containerPort: 80
+---

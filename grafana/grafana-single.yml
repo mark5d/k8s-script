@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+spec:
+  selector:
+    matchLabels:
+      app: grafana
+  replicas: 1    
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      nodeName: k8s.node1  
+      containers:
+      - name: grafana
+        image: grafana/grafana:8.4.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http-grafana
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 250m
+            memory: 750Mi
+          limits:
+            cpu: 250m
+            memory: 750Mi
+        volumeMounts:
+        - mountPath: /var/lib/grafana
+          name: grafana-data
+      volumes:
+      - name: grafana-data
+        hostPath:
+          path: /root/k8s-yml/grafana/single/data 
+          type: DirectoryOrCreate
+---
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: grafana-service
+spec: 
+  type: NodePort 
+  selector: 
+    app: grafana
+  ports: 
+  - name: http
+    port: 3000 
+    nodePort: 30003  
+    protocol: "TCP" 
+---

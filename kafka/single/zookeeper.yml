@@ -1,0 +1,236 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-headless
+  labels:
+    app: zookeeper
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: client
+    port: 2181
+    targetPort: client
+  - name: follower
+    port: 2888
+    targetPort: follower
+  - name: election
+    port: 3888
+    targetPort: election
+  selector:
+    app: zookeeper
+ 
+---
+#部署 Service，用于外部访问 Zookeeper
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  type: NodePort
+  ports:
+  - name: client
+    port: 2181
+    targetPort: 2181
+    nodePort: 30107
+  - name: follower
+    port: 2888
+    targetPort: follower
+  - name: election
+    port: 3888
+    targetPort: election
+  selector:
+    app: zookeeper
+ 
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  serviceName: zookeeper-headless
+  replicas: 1
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: zookeeper
+  template:
+    metadata:
+      name: zookeeper
+      labels:
+        app: zookeeper
+    spec:    
+      nodeName: k8s.node1    
+      securityContext:
+        fsGroup: 1001
+      containers:
+      - name: zookeeper
+        image: docker.io/bitnami/zookeeper:3.4.14-debian-9-r25
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsUser: 1001
+        command:
+         - bash
+         - -ec
+         - |
+            # Execute entrypoint as usual after obtaining ZOO_SERVER_ID based on POD hostname
+            HOSTNAME=`hostname -s`
+            if [[ $HOSTNAME =~ (.*)-([0-9]+)$ ]]; then
+              ORD=${BASH_REMATCH[2]}
+              export ZOO_SERVER_ID=$((ORD+1))
+            else
+              echo "Failed to get index from hostname $HOST"
+              exit 1
+            fi
+            . /opt/bitnami/base/functions
+            . /opt/bitnami/base/helpers
+            print_welcome_page
+            . /init.sh
+            nami_initialize zookeeper
+            exec tini -- /run.sh            
+        env:
+        - name: ZOO_PORT_NUMBER
+          value: "2181"
+        - name: ZOO_TICK_TIME
+          value: "2000"
+        - name: ZOO_INIT_LIMIT
+          value: "10"
+        - name: ZOO_SYNC_LIMIT
+          value: "5"
+        - name: ZOO_MAX_CLIENT_CNXNS
+          value: "60"
+        - name: ZOO_SERVERS
+          value: "
+                  zookeeper-0.zookeeper-headless:2888:3888,
+                 "
+        - name: ZOO_ENABLE_AUTH
+          value: "no"
+        - name: ZOO_HEAP_SIZE
+          value: "1024"
+        - name: ZOO_LOG_LEVEL
+          value: "ERROR"
+        - name: ALLOW_ANONYMOUS_LOGIN
+          value: "yes"
+        ports:
+        - name: client
+          containerPort: 2181
+        - name: follower
+          containerPort: 2888
+        - name: election
+          containerPort: 3888
+        livenessProbe:
+          tcpSocket:
+            port: client
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        readinessProbe:
+          tcpSocket:
+            port: client
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 6
+        volumeMounts:
+        - name: zookeeper-data
+          mountPath: /bitnami/zookeeper
+      volumes:                                             #本地需要挂载到容器里的数据卷定义部分
+      - name: zookeeper-data
+        hostPath:
+          path: /root/k8s-yml/kafka/single/zookeeper/data                   
+          type: DirectoryOrCreate
+# ---
+# apiVersion: apps/v1
+# kind: StatefulSet                               
+# metadata:
+#   name: zookeeper
+# spec:
+#   replicas: 1                                               
+#   selector:
+#     matchLabels:                                         
+#       app: zookeeper 
+#   serviceName: zookeeper    
+#   template:
+#     metadata:
+#       labels:
+#         app: zookeeper
+#     spec:
+#       nodeName: k8s.node1  
+#       containers:                                          #Pod里容器的定义部分
+#       - name: zookeeper                                     #容器的名称
+#         image: docker.io/bitnami/zookeeper:3.8                            #容器对应的docker镜像
+#         imagePullPolicy: IfNotPresent
+#         securityContext:
+#           allowPrivilegeEscalation: true
+#           privileged: true
+#           runAsUser: 1000          
+#         resources:
+#           limits:
+#             cpu: 1000m
+#             memory: 4096Mi
+#           requests:
+#             cpu: 1000m
+#             memory: 4096Mi
+#         ports:
+#         - containerPort: 2181
+#           name: client
+#         - containerPort: 2888
+#           name: server
+#         - containerPort: 3888
+#           name: leader-election
+#         env:                                                   
+#         - name: ALLOW_ANONYMOUS_LOGIN
+#           value: "yes"
+#         readinessProbe:
+#           tcpSocket:
+#             port: 2181
+#           initialDelaySeconds: 10
+#           timeoutSeconds: 5
+#         livenessProbe:
+#           tcpSocket:
+#             port: 2181
+#           initialDelaySeconds: 10
+#           timeoutSeconds: 5
+#         volumeMounts:                                #容器内挂载点的定义部分
+#         - name: zookeeper-data
+#           mountPath: /bitnami      
+#       volumes:                                             #本地需要挂载到容器里的数据卷定义部分
+#       - name: zookeeper-data
+#         hostPath:
+#           path: /root/k8s-yml/kafka/single/zookeeper/data                   
+#           type: DirectoryOrCreate
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: zookeeper
+#   labels:
+#     app: zookeeper
+# spec:
+#   selector:
+#     app: zookeeper
+#   type: NodePort
+#   # clusterIP: None
+#   ports:
+#   - name: client
+#     port: 2181
+#     nodePort: 30004
+#     targetPort: 2181
+#   - name: server
+#     port: 2888
+#     targetPort: 2888 
+#   - name: leader-election
+#     port: 3888
+#     targetPort: 3888 
+  
