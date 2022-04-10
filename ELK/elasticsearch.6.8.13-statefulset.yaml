@@ -21,13 +21,14 @@ spec:
         k8s-app: elasticsearch-logging
         version: v6.8.13
     spec:
-      nodeSelector:
-        esnode: "true"  ## 注意给想要运行到的node打上相应labels
+      nodeName: k8s.node1   
+      # nodeSelector:
+      #   esnode: "true"  ## 注意给想要运行到的node打上相应labels
       containers:
       - env:
         - name: NAMESPACE
           valueFrom:
-            fieldRee:
+            fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
         - name: cluster.name
