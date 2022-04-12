@@ -1,73 +1,250 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-headless
+  labels:
+    app: gitlab
+spec:
+  ports:
+    - name: gitlab-ui
+      port: 80
+      protocol: TCP
+      targetPort: 80
+    # - name: gitlab-ssh
+    #   port: 30022
+    #   protocol: TCP
+    #   targetPort: 22
+  selector:
+    app: gitlab
+  type: ClusterIP
+  clusterIP: None
+---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: gitlab
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: gitlab-cb-ver130806
+# roleRef:
+#   apiGroup: rbac.authorization.k8s.io
+#   kind: ClusterRole
+#   name: cluster-admin
+# subjects:
+#   - kind: ServiceAccount
+#     name: gitlab
+#     namespace: gitlab-ver130806
+# ---
+
 apiVersion: apps/v1
-kind: Deployment                               
+kind: Deployment
 metadata:
   name: gitlab
+  labels:
+    app: gitlab
 spec:
-  replicas: 1                                               
+  replicas: 1
   selector:
-    matchLabels:                                         
-      app: gitlab  
+    matchLabels:
+      app: gitlab
+  # strategy:
+  #   type: Recreate
   template:
     metadata:
       labels:
         app: gitlab
     spec:
-      nodeName: k8s.node1  
-      hostname: gitlabex
-      containers:                                          
-      - name: gitlab                                     
-        image: gitlab/gitlab-ce:14.6.0-ce.0                           
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8929     
-          name: gitlab-http
-        - containerPort: 2224
-          name: gitlab-https    
-        env:
-          - name: GITLAB_OMNIBUS_CONFIG
-            value: |
-              external_url 'http://gitlabex:30004'
-              gitlab_rails['gitlab_shell_ssh_port'] = 2224                
-        resources:
-          limits:
-            cpu: 2000m
-            memory: 4096Mi
-          requests:
-            cpu: 2000m
-            memory: 4096Mi
-        volumeMounts:                                
-        - name: gitlab-data
-          mountPath: /var/opt/gitlab             
-        - name: gitlab-config
-          mountPath: /etc/gitlab         
-        - name: gitlab-logs
-          mountPath: /var/log/gitlab       
+      # serviceAccountName: gitlab
+      nodeName: k8s.node1
+      containers:
+        - image: gitlab/gitlab-ce:14.6.0-ce.0
+          name: gitlab
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: 4Gi
+            limits:
+              cpu: "2000m"
+              memory: 4Gi
+          securityContext:
+            privileged: true
+          env:
+            - name: TZ
+              value: Asia/Shanghai
+            - name: GITLAB_OMNIBUS_CONFIG
+              value: |
+                # postgresql['enable'] = false
+                # gitlab_rails['db_username'] = "gitlab"
+                # gitlab_rails['db_password'] = "bogeusepg"
+                # gitlab_rails['db_host'] = "postgresql-headless"
+                # gitlab_rails['db_port'] = "5432"
+                # gitlab_rails['db_database'] = "gitlabhq_production"
+                # gitlab_rails['db_adapter'] = 'postgresql'
+                # gitlab_rails['db_encoding'] = 'utf8'
+                # redis['enable'] = false
+                # gitlab_rails['redis_host'] = 'redis-headless'
+                # gitlab_rails['redis_port'] = '6379'
+                # gitlab_rails['redis_password'] = 'it9s2cu'
+                gitlab_rails['gitlab_shell_ssh_port'] = 22
+                external_url 'http://gitlab-headless/'
+                nginx['listen_port'] = 80
+                nginx['listen_https'] = false
+                #-------------------------------------------
+                # gitlab_rails['gitlab_email_enabled'] = true
+                # gitlab_rails['gitlab_email_from'] = 'admin@boge.com'
+                # gitlab_rails['gitlab_email_display_name'] = 'boge'
+                # gitlab_rails['gitlab_email_reply_to'] = 'gitlab@boge.com'
+                # gitlab_rails['gitlab_default_can_create_group'] = true
+                # gitlab_rails['gitlab_username_changing_enabled'] = true
+                # gitlab_rails['smtp_enable'] = true
+                # gitlab_rails['smtp_address'] = "smtp.exmail.qq.com"
+                # gitlab_rails['smtp_port'] = 465
+                # gitlab_rails['smtp_user_name'] = "gitlab@boge.com"
+                # gitlab_rails['smtp_password'] = "bogesendmail"
+                # gitlab_rails['smtp_domain'] = "exmail.qq.com"
+                # gitlab_rails['smtp_authentication'] = "login"
+                # gitlab_rails['smtp_enable_starttls_auto'] = true
+                # gitlab_rails['smtp_tls'] = true
+                #-------------------------------------------
+                # 关闭 promethues
+                prometheus['enable'] = false
+                # 关闭 grafana
+                grafana['enable'] = false
+                # # 减少内存占用
+                # unicorn['worker_memory_limit_min'] = "200 * 1 << 20"
+                # unicorn['worker_memory_limit_max'] = "300 * 1 << 20"
+                # # 减少 sidekiq 的并发数
+                # sidekiq['concurrency'] = 16
+                # # 减少 postgresql 数据库缓存
+                # postgresql['shared_buffers'] = "256MB"
+                # # 减少 postgresql 数据库并发数量
+                # postgresql['max_connections'] = 8
+                # # 减少进程数   worker=CPU核数+1
+                # unicorn['worker_processes'] = 2
+                # nginx['worker_processes'] = 2
+                # puma['worker_processes'] = 2
+                # # puma['per_worker_max_memory_mb'] = 850
+                # # 保留3天备份的数据文件
+                # gitlab_rails['backup_keep_time'] = 259200
+                #-------------------------------------------
+          ports:
+            - containerPort: 30080
+              name: gitlab
+          livenessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - "curl -s http://127.0.0.1:30080/-/health|grep -w 'GitLab OK'"
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - "curl -s http://127.0.0.1:30080/-/health|grep -w 'GitLab OK'"
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            - mountPath: /etc/gitlab
+              name: gitlab1
+            - mountPath: /var/log/gitlab
+              name: gitlab2
+            - mountPath: /var/opt/gitlab
+              name: gitlab3
+            # - mountPath: /etc/localtime
+            #   name: tz-config
+
       volumes:
-        - name: gitlab-config
+        - name: gitlab1
           hostPath:
-            path: /root/k8s-yml/gitlab/single/conf
+            path: /root/k8s-yml/gitlab/single/data 
+            type: DirectoryOrCreate
+          # persistentVolumeClaim:
+          #   claimName: gitlab-etc-ver130806-pvc
+        - name: gitlab2
+          hostPath:
+            path: /root/k8s-yml/gitlab/single/log 
+            type: DirectoryOrCreate
+          # persistentVolumeClaim:
+          #   claimName: gitlab-log-ver130806-pvc
+        - name: gitlab3
+          hostPath:
+            path: /root/k8s-yml/gitlab/single/opt
             type: DirectoryOrCreate 
-        - name: gitlab-data
-          hostPath:
-            path: /root/k8s-yml/gitlab/single/data 
-            type: DirectoryOrCreate
-        - name: gitlab-logs
-          hostPath:
-            path: /root/k8s-yml/gitlab/single/data 
-            type: DirectoryOrCreate
+          # persistentVolumeClaim:
+          #   claimName: gitlab-opt-ver130806-pvc
+        # - name: tz-config
+        #   hostPath:
+        #     path: /root/k8s-yml/gitlab/single/localtime
+        #     type: FileOrCreate
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0
 ---
-apiVersion: "v1"
-kind: Service
-metadata: 
-  name: gitlab-service
-  namespace: default
-spec: 
-  type: NodePort  #ExternalName外部服务引入集群, ClusterIP仅用于集群内部通讯, NodePort接入集群外部流量, LoadBalancer接入云负载均衡器
-  selector: 
-    app: gitlab
-  # sessionAffinity: "ClientIP" #ClientIP客户端每次访问固定pod ,默认为None
-  ports: 
-  - name: http
-    port: 8929 #集群内访问端口
-    nodePort: 30004  #集群外访问地址
-    protocol: "TCP" #协议 TCP,UDP
+# old version
+
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: gitlab
+#  annotations:
+#    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+#    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+#spec:
+#  tls:
+#  - hosts:
+#    - git.boge.com
+#    secretName: mytls
+#  rules:
+#  - host: git.boge.com
+#    http:
+#      paths:
+#      - path: /
+#        backend:
+#          serviceName: gitlab
+#          servicePort: 80
+
+# Add tls
+# openssl genrsa -out tls.key 2048
+# openssl req -new -x509 -key tls.key -out tls.cert -days 360 -subj /CN=*.boge.com
+# kubectl -n gitlab-ver130806 create secret tls mytls --cert=tls.cert --key=tls.key 
+
+# new version
+
+## https://kubernetes.io/docs/concepts/services-networking/ingress/
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitlab
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  # tls:
+  # - hosts:
+  #   - git.boge.com
+    # secretName: mytls
+  rules:
+  - host: gitlab.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitlab-headless
+            port:
+              number: 80
+
+---

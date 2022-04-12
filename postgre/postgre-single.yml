@@ -1,0 +1,101 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql
+  labels:
+    app: gitlab
+spec:
+  serviceName: postgresql-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      #nodeSelector:
+      #  gee/disk: "500g"
+      nodeName: k8s.node1  
+      containers:
+        - image: postgres:12.6-alpine
+        #- image: harbor.boge.com/library/postgres:12.6-alpine
+          name: postgresql
+          env:
+            - name: POSTGRES_USER
+              value: gitlab
+            - name: POSTGRES_DB
+              value: gitlabhq_production
+            - name: POSTGRES_PASSWORD
+              value: bogeusepg
+            - name: TZ
+              value: Asia/Shanghai
+          ports:
+            - containerPort: 5432
+              name: postgresql
+          livenessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - exec pg_isready -U gitlab -h 127.0.0.1 -p 5432 -d gitlabhq_production
+            initialDelaySeconds: 110
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+              - sh
+              - -c
+              - exec pg_isready -U gitlab -h 127.0.0.1 -p 5432 -d gitlabhq_production
+            initialDelaySeconds: 20
+            timeoutSeconds: 3
+            periodSeconds: 5
+          resources:
+           requests:
+             cpu: 100m
+             memory: 512Mi
+           limits:
+             cpu: "1"
+             memory: 1Gi
+          volumeMounts:
+            - name: postgresql-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgresql-data
+          hostPath:
+            path: /root/k8s-yml/postgresql/single/data                   
+            type: DirectoryOrCreate
+---
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: postgresql-headless
+  namespace: default
+spec: 
+  selector: 
+    app: gitlab
+  type: ClusterIP  
+  clusterIP: None
+  ports: 
+  - name: postgresql
+    port: 5432 
+    targetPort: 5432  
+    protocol: "TCP" 
+---
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: postgresql
+  namespace: default
+spec: 
+  selector: 
+    app: gitlab
+  type: NodePort  
+  ports: 
+  - name: postgresql
+    port: 5432 
+    nodePort: 30008  
+    protocol: "TCP" 

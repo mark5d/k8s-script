@@ -7,7 +7,7 @@ metadata:
 data:
   logging_output: "kafka"
   kafka_brokers: "10.0.1.204:9092"
-  kafka_version: "0.10.0"
+  kafka_version: "2.30.0"
   # configure all valid topics in kafka
   # when disable auto-create topic
   kafka_topics: "tomcat-syslog,tomcat-access"

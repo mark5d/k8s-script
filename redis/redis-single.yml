@@ -7,7 +7,7 @@ spec:
   selector:
     matchLabels:                                         
       app: redis 
-  serviceName: redis      
+  serviceName: redis-headless      
   template:
     metadata:
       labels:
@@ -58,6 +58,23 @@ spec:
           hostPath:
             path: /root/k8s-yml/redis/single/data 
             type: DirectoryOrCreate
+---
+apiVersion: "v1"
+kind: Service
+metadata: 
+  name: redis-headless
+  namespace: default
+spec: 
+  selector: 
+    app: redis
+  type: ClusterIP  
+  clusterIP: None
+  ports: 
+  - name: http
+    port: 6379 
+    targetPort: 6379  
+    protocol: "TCP" 
+
 ---
 apiVersion: "v1"
 kind: Service

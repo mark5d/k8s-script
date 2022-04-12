@@ -1,0 +1,15 @@
+FROM gitlab/gitlab-ce:13.8.6-ce.0
+
+RUN rm /etc/apt/sources.list 
+RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main' > /etc/apt/sources.list.d/pgdg.list
+# RUN wget  https://www.postgresql.org/media/keys/ACCC4CF8.asc 
+COPY ACCC4CF8.asc ACCC4CF8.asc
+RUN apt-key add ACCC4CF8.asc
+    # | apt-key add -
+COPY sources.list /etc/apt/sources.list
+
+RUN apt-get update -yq && \
+    apt-get install -y vim iproute2 net-tools iputils-ping curl wget software-properties-common unzip postgresql-client-12 && \
+    rm -rf /var/cache/apt/archives/*
+
+RUN ln -svf /usr/bin/pg_dump /opt/gitlab/embedded/bin/pg_dump
