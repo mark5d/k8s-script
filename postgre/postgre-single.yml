@@ -4,32 +4,31 @@ kind: StatefulSet
 metadata:
   name: postgresql
   labels:
-    app: gitlab
+    app: postgresql
 spec:
   serviceName: postgresql-headless
   replicas: 1
   selector:
     matchLabels:
-      app: gitlab
+      app: postgresql
   template:
     metadata:
       labels:
-        app: gitlab
+        app: postgresql
     spec:
       #nodeSelector:
       #  gee/disk: "500g"
       nodeName: k8s.node1  
       containers:
         - image: postgres:12.6-alpine
-        #- image: harbor.boge.com/library/postgres:12.6-alpine
           name: postgresql
           env:
             - name: POSTGRES_USER
-              value: gitlab
+              value: sonar
             - name: POSTGRES_DB
-              value: gitlabhq_production
+              value: sonar
             - name: POSTGRES_PASSWORD
-              value: bogeusepg
+              value: sonar
             - name: TZ
               value: Asia/Shanghai
           ports:
@@ -40,7 +39,7 @@ spec:
               command:
               - sh
               - -c
-              - exec pg_isready -U gitlab -h 127.0.0.1 -p 5432 -d gitlabhq_production
+              - exec pg_isready -U sonar -h 127.0.0.1 -p 5432 -d sonar
             initialDelaySeconds: 110
             timeoutSeconds: 5
             failureThreshold: 6
@@ -49,7 +48,7 @@ spec:
               command:
               - sh
               - -c
-              - exec pg_isready -U gitlab -h 127.0.0.1 -p 5432 -d gitlabhq_production
+              - exec pg_isready -U sonar -h 127.0.0.1 -p 5432 -d sonar
             initialDelaySeconds: 20
             timeoutSeconds: 3
             periodSeconds: 5
@@ -59,24 +58,29 @@ spec:
              memory: 512Mi
            limits:
              cpu: "1"
-             memory: 1Gi
+             memory: 2Gi
           volumeMounts:
             - name: postgresql-data
               mountPath: /var/lib/postgresql/data
+            - name: postgresql
+              mountPath: /var/lib/postgresql
       volumes:
         - name: postgresql-data
           hostPath:
             path: /root/k8s-yml/postgresql/single/data                   
             type: DirectoryOrCreate
+        - name: postgresql
+          hostPath:
+            path: /root/k8s-yml/postgresql/single/postgresql                   
+            type: DirectoryOrCreate
 ---
-apiVersion: "v1"
+apiVersion: v1
 kind: Service
 metadata: 
   name: postgresql-headless
-  namespace: default
 spec: 
   selector: 
-    app: gitlab
+    app: postgresql
   type: ClusterIP  
   clusterIP: None
   ports: 
@@ -89,10 +93,9 @@ apiVersion: "v1"
 kind: Service
 metadata: 
   name: postgresql
-  namespace: default
 spec: 
   selector: 
-    app: gitlab
+    app: postgresql
   type: NodePort  
   ports: 
   - name: postgresql
