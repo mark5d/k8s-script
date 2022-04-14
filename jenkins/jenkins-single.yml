@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: jenkins
+  name: jenkins
+spec:
+  selector:
+    matchLabels:
+      app: jenkins
+  replicas: 1    
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      nodeName: k8s.node1  
+      containers:
+      - name: jenkins
+        image: jenkinsci/blueocean:1.25.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: jenkins-ui
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2048Mi
+          limits:
+            cpu: 1000m
+            memory: 2048Mi
+        volumeMounts:
+        - mountPath: /var/jenkins_home
+          name: jenkins-data
+      volumes:
+      - name: jenkins-data
+        hostPath:
+          path: /root/k8s-yml/jenkins/single/data 
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-np
+spec:
+  selector:
+    app: jenkins
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30024
+    name: jenkins-ui
+
+
+
