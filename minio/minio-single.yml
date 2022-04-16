@@ -5,6 +5,7 @@ metadata:
   labels:
     app: minio
   name: minio
+  namespace: spinnaker
 spec:
   selector:
     matchLabels:
@@ -14,6 +15,7 @@ spec:
     metadata:
       labels:
         app: minio
+      namespace: spinnaker
     spec:
       nodeName: k8s.node1  
       containers:
@@ -53,6 +55,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio-np
+  namespace: spinnaker
 spec:
   selector:
     app: minio
@@ -67,6 +70,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio-headless
+  namespace: spinnaker
 spec:
   selector:
     app: minio

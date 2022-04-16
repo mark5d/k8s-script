@@ -114,3 +114,20 @@ spec:
             name: rabbitmq-headless
             port:
               number: 15672
+
+
+
+    docker run  \
+    --name halyard  \
+    -v ~/.hal:/home/spinnaker/.hal \
+    -v ~/.kube:/home/spinnaker/.kube \
+    -d \
+    harbor.templete.com/spinnaker-marketplace/halyard:1.32.0
+
+
+#     DEFAULT_JVM_OPTS='"-Djava.security.egd=file:/dev/./urandom" "-                                                                                
+# Dspring.config.additional-location=/opt/spinnaker/config/" "-                                                                                 
+# Dhttp.proxyHost=192.168.1.6" "-Dhttp.proxyPort=10010" "-                                                                                      
+# Dhttps.proxyHost=192.168.1.6" "-Dhttps.proxyPort=10010" "-                                                                                    
+# Dhttp.nonProxyHosts=\"spinnaker-spinnaker-halyard|localhost|*.spinnaker.com\""' 
+
