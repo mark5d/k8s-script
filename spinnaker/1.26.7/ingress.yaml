@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spinnaker-service
+  namespace: spinnaker
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: spinnaker.idevops.site
+    http:
+      paths:
+      - path: /
+        pathType: Prefix  
+        backend:
+          service:
+            name: spin-deck
+            port:
+              number: 9000
+  - host: spin-gate.idevops.site
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: spin-gate
+            port:
+              number: 8084
+

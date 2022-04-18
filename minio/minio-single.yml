@@ -17,7 +17,7 @@ spec:
         app: minio
       namespace: spinnaker
     spec:
-      nodeName: k8s.node1  
+      nodeName: k8s.node2  
       containers:
       - name: minio
         image: harbor.templete.com/library/minio:latest
