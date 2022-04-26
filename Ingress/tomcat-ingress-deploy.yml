@@ -76,7 +76,6 @@ spec:
       labels:
         app: tomcat
     spec: 
-      nodeName: k8s.node2
       containers: 
       - name: tomcat-container
         image: tomcat:8.5-jre10-slim

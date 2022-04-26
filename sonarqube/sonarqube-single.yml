@@ -33,7 +33,7 @@ spec:
     spec:
       #nodeSelector:
       #  gee/disk: "500g"
-      nodeName: k8s.node1  
+      nodeName: k8sn1 
       containers:
         - image: sonarqube:9.4.0-community
           name: sonarqube
@@ -51,11 +51,11 @@ spec:
               name: sonarqube
           resources:
            requests:
-             cpu: "1"
-             memory: 4Gi
+             cpu: 1000m
+             memory: 4096Mi
            limits:
-             cpu: "1"
-             memory: 4Gi
+             cpu: 1000m
+             memory: 4096Mi
           volumeMounts:
             - name: sonarqube-data
               mountPath: /opt/sonarqube/data
@@ -91,17 +91,37 @@ spec:
     port: 9000 
     targetPort: 9000  
     protocol: "TCP" 
+# ---
+# apiVersion: "v1"
+# kind: Service
+# metadata: 
+#   name: sonarqube
+# spec: 
+#   selector: 
+#     app: sonarqube
+#   type: NodePort  
+#   ports: 
+#   - name: sonarqube
+#     port: 9000 
+#     nodePort: 30028  
+#     protocol: "TCP" 
 ---
-apiVersion: "v1"
-kind: Service
-metadata: 
-  name: sonarqube
-spec: 
-  selector: 
-    app: sonarqube
-  type: NodePort  
-  ports: 
-  - name: sonarqube
-    port: 9000 
-    nodePort: 30028  
-    protocol: "TCP" 
+apiVersion: "networking.k8s.io/v1"
+kind: Ingress
+metadata:
+  name: sonarqube-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: sonarqube.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sonarqube-headless
+            port:
+              number: 9000

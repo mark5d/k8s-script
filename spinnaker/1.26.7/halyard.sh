@@ -1,8 +1,8 @@
 #!/bin/bash
 
 VERSION="1.26.7"
-DECK_HOST="http://spinnaker.idevops.site:30080"
-GATE_HOST="http://spin-gate.idevops.site:30080"
+DECK_HOST="http://spinnaker.idevops.site"
+GATE_HOST="http://spin-gate.idevops.site"
 until hal --ready; do sleep 10 ; done
 
 # 设置Spinnaker版`本，--version 指定版本

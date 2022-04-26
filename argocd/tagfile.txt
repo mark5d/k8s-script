@@ -1,0 +1,4 @@
+quay.io/argoproj/argocd-applicationset:v0.4.1
+ghcr.io/dexidp/dex:v2.30.2
+quay.io/argoproj/argocd:v2.3.3
+

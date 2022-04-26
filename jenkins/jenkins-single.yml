@@ -15,11 +15,13 @@ spec:
       labels:
         app: jenkins
     spec:
-      nodeName: k8s.node1  
+      nodeName: k8sn1
       containers:
       - name: jenkins
         image: jenkinsci/blueocean:1.25.3
         imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
         ports:
         - containerPort: 8080
           name: jenkins-ui
@@ -27,10 +29,10 @@ spec:
         resources:
           requests:
             cpu: 1000m
-            memory: 2048Mi
+            memory: 4096Mi
           limits:
             cpu: 1000m
-            memory: 2048Mi
+            memory: 4096Mi
         volumeMounts:
         - mountPath: /var/jenkins_home
           name: jenkins-data
@@ -39,20 +41,58 @@ spec:
         hostPath:
           path: /root/k8s-yml/jenkins/single/data 
           type: DirectoryOrCreate
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: jenkins-np
+# spec:
+#   selector:
+#     app: jenkins
+#   type: NodePort
+#   ports:
+#   - port: 8080
+#     targetPort: 8080
+#     nodePort: 30024
+#     name: jenkins-ui
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: jenkins-np
+  name: jenkins-headless
+  # namespace: spinnaker
 spec:
   selector:
     app: jenkins
-  type: NodePort
+  type: ClusterIP
+  clusterIP: None
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 30024
-    name: jenkins-ui
+    name: jenkins
+
+---
+apiVersion: "networking.k8s.io/v1"
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  # namespace: spinnaker
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: jenkins.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins-headless
+            port:
+              number: 8080
 
 
 

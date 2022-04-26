@@ -7,11 +7,6 @@ metadata:
     app: gitlab
 spec:
   ports:
-    - name: gitlab-ui
-      nodePort: 30020
-      protocol: TCP
-      targetPort: 30020
-      port: 30020
     - name: gitlab-ssh
       port: 30022
       protocol: TCP
@@ -41,7 +36,7 @@ spec:
         app: gitlab
     spec:
       # serviceAccountName: gitlab
-      nodeName: k8s.node1
+      nodeName: k8sn1
       containers:
         - image: gitlab/gitlab-ce:14.8.5-ce.0
           name: gitlab
@@ -72,9 +67,9 @@ spec:
                 # gitlab_rails['redis_port'] = '6379'
                 # gitlab_rails['redis_password'] = 'it9s2cu'
                 gitlab_rails['gitlab_shell_ssh_port'] = 30022
-                external_url 'http://gitlab.example.com:30020/'
+                external_url 'http://gitlab.example.com/'
                 gitlab_rails['initial_root_password'] = '12345678'
-                nginx['listen_port'] = 30020
+                nginx['listen_port'] = 80
                 nginx['listen_https'] = false
                 # nginx['redirect_http_to_https'] = false
                 # nginx['redirect_http_to_https_port'] = 30080
@@ -117,7 +112,7 @@ spec:
                 # gitlab_rails['backup_keep_time'] = 259200
                 #-------------------------------------------
           ports:
-            - containerPort: 30020
+            - containerPort: 80
               name: gitlab-ui
             - containerPort: 30022
               name: gitlab-ssh
@@ -180,3 +175,41 @@ spec:
         runAsUser: 0
         fsGroup: 0
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-headless
+spec:
+  selector:
+    app: gitlab
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 80
+    targetPort: 80
+    name: gitlab-ui
+  - name: gitlab-ssh
+    port: 30022
+    protocol: TCP
+    targetPort: 30022
+
+---
+apiVersion: "networking.k8s.io/v1"
+kind: Ingress
+metadata:
+  name: gitlab-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: gitlab.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitlab-headless
+            port:
+              number: 80

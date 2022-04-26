@@ -18,7 +18,7 @@ spec:
     spec:
       #nodeSelector:
       #  gee/disk: "500g"
-      nodeName: k8s.node1  
+      nodeName: k8sn1  
       containers:
         - image: postgres:12.6-alpine
           name: postgresql
